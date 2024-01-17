@@ -104,7 +104,7 @@ public class LabyrinthState
     public static bool isPaused;
 
     public static event Action<string> observers;
-    public static Dictionary<string, Action> propertyObservers = new();
+    public static Dictionary<string, List<Action>> propertyObservers = new();
 
 
     public static void AddListener(Action<string> action)
@@ -121,13 +121,12 @@ public class LabyrinthState
     {
         if (!propertyObservers.ContainsKey(property))
         {
-            propertyObservers.Add(property, new(action));
+            propertyObservers.Add(property, new() { action });
             return;
         }
 
-        // Debug.Log($"Before '{property}' added: {propertyObservers[property].GetInvocationList().Length}");
-        propertyObservers[property] += action;
-        // Debug.Log($"After '{property}' added: {propertyObservers[property].GetInvocationList().Length}");
+        List<Action> subscribers = propertyObservers[property];
+        subscribers.Add(action);
     }
 
     public static void RemoveListener(Action<string> action)
@@ -146,13 +145,8 @@ public class LabyrinthState
             return;
         }
 
-        foreach (var cb in propertyObservers[property].GetInvocationList())
-        {
-            propertyObservers[property] -= (Action)cb;
-        }
-        // Debug.Log($"Before '{property}' removed: {propertyObservers[property].GetInvocationList().Length}");
-        // propertyObservers[property] -= action;
-        // Debug.Log($"After '{property}' removed: {propertyObservers[property].GetInvocationList().Length}");
+        List<Action> subscribers = propertyObservers[property];
+        subscribers.Remove(action);
     }
 
     private static void NotifyListeners([CallerMemberName] string propertyName = "")
@@ -164,7 +158,7 @@ public class LabyrinthState
 
         if (propertyObservers.ContainsKey(propertyName))
         {
-            propertyObservers[propertyName]?.Invoke();
+            propertyObservers[propertyName]?.ForEach(a => a());
         }
     }
 }
